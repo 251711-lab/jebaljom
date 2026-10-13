@@ -1,221 +1,255 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>대한민국 공연장 지도</title>
+  <title>내 주변 의료시설 찾기</title>
 
-  <!-- 카카오 지도 SDK: 본인의 JavaScript 키로 교체하세요. -->
+  <!-- 카카오 지도 SDK 불러오기 -->
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=11a56469b67306e63016649e688605c8&libraries=services&autoload=false"></script>
 
-  <!-- 엑셀 파일을 읽기 위한 라이브러리 -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     html, body {
-      margin: 0;
       width: 100%;
       height: 100%;
+      margin: 0;
       font-family: Arial, "Malgun Gothic", sans-serif;
       color: #222;
     }
 
+    button, input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
     .container {
       display: flex;
+      width: 100%;
       height: 100vh;
       overflow: hidden;
     }
 
-    /* 왼쪽 검색 패널 */
+    /* 왼쪽 의료시설 패널 */
     .sidebar {
-      width: 370px;
-      min-width: 300px;
       display: flex;
       flex-direction: column;
-      border-right: 1px solid #ddd;
-      background: white;
+      width: 390px;
+      min-width: 320px;
+      height: 100%;
+      background: #fff;
+      border-right: 1px solid #e5e7eb;
       z-index: 2;
     }
 
     .header {
-      padding: 20px;
+      padding: 24px 20px 16px;
       border-bottom: 1px solid #eee;
     }
 
-    h1 {
-      font-size: 22px;
-      margin: 0 0 8px;
+    .header h1 {
+      margin: 0 0 7px;
+      font-size: 23px;
     }
 
-    .description {
-      font-size: 12px;
+    .header p {
+      margin: 0;
       color: #777;
-      line-height: 1.7;
+      font-size: 13px;
+      line-height: 1.6;
     }
 
-    /* 엑셀 파일 업로드 */
-    .upload-area {
-      margin-top: 14px;
-      padding: 12px;
-      border: 1px dashed #bbb;
-      border-radius: 10px;
-      background: #fafafa;
-    }
-
-    .upload-area label {
-      display: block;
-      font-size: 12px;
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-
-    #excelFile {
-      width: 100%;
-      font-size: 11px;
-    }
-
-    /* 공연장 규모 탭 */
-    .tabs {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-      margin-top: 15px;
-    }
-
-    .tab {
-      padding: 10px 3px;
-      border: 1px solid #ddd;
-      border-radius: 9px;
-      background: white;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .tab small {
-      display: block;
-      margin-top: 4px;
-      font-size: 10px;
-      font-weight: normal;
-    }
-
-    .tab.active[data-type="small"] {
-      color: white;
-      background: #2878d0;
-    }
-
-    .tab.active[data-type="medium"] {
-      color: white;
-      background: #139b78;
-    }
-
-    .tab.active[data-type="large"] {
-      color: white;
-      background: #e16b32;
-    }
-
-    .tool-buttons {
+    /* 병원 및 약국 탭 */
+    .category-tabs {
       display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
+      gap: 8px;
+      padding: 16px 20px 12px;
+    }
+
+    .tab-button {
+      flex: 1;
+      padding: 13px 8px;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      background: #f8fafc;
+      color: #555;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+
+    .tab-button.active[data-category="hospital"] {
+      color: #1677d2;
+      border-color: #1677d2;
+      background: #eaf4ff;
+    }
+
+    .tab-button.active[data-category="pharmacy"] {
+      color: #16845b;
+      border-color: #16845b;
+      background: #e8f8ef;
+    }
+
+    .tab-icon {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 25px;
+    }
+
+    /* 검색창 */
+    .search-form {
+      display: flex;
+      gap: 8px;
       margin-top: 12px;
     }
 
-    .tool-buttons button {
+    #searchInput {
       flex: 1;
-      padding: 9px 5px;
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      outline: none;
+      font-size: 13px;
+    }
+
+    #searchInput:focus {
+      border-color: #4389e8;
+    }
+
+    #searchButton {
+      padding: 0 15px;
+      border: none;
+      border-radius: 8px;
+      background: #fee500;
+      font-weight: bold;
+    }
+
+    /* 위치 및 검색 상태 */
+    #statusMessage {
+      padding: 12px 20px;
+      background: #f8fafc;
+      border-top: 1px solid #eee;
+      border-bottom: 1px solid #eee;
+      color: #666;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .location-button {
+      margin: 12px 20px 4px;
+      padding: 10px;
       border: 1px solid #ddd;
       border-radius: 8px;
       background: white;
-      cursor: pointer;
-      font-size: 11px;
+      color: #333;
+      font-size: 13px;
+      font-weight: bold;
     }
 
-    #status {
-      padding: 12px 16px;
-      background: #fafafa;
-      border-bottom: 1px solid #eee;
+    .location-button:hover {
+      background: #f5f8fc;
+    }
+
+    .list-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px 10px;
+    }
+
+    .list-heading strong {
+      font-size: 14px;
+    }
+
+    #resultCount {
+      color: #888;
       font-size: 12px;
-      line-height: 1.6;
-      color: #555;
     }
 
     /* 검색 결과 목록 */
     #resultList {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
     }
 
     .result-item {
-      padding: 13px 15px;
+      display: flex;
+      gap: 12px;
+      padding: 15px 20px;
       border-bottom: 1px solid #eee;
       cursor: pointer;
+      transition: background 0.2s;
     }
 
-    .result-item:hover {
-      background: #f7f9fc;
+    .result-item:hover,
+    .result-item.selected {
+      background: #f6f9fc;
     }
 
-    .result-top {
+    .result-image {
       display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .category-image {
-      width: 45px;
-      height: 45px;
       flex-shrink: 0;
-      display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+      width: 62px;
+      height: 62px;
       border-radius: 12px;
-      font-size: 23px;
+      font-size: 30px;
     }
 
-    .small-bg { background: #e5f0ff; }
-    .medium-bg { background: #e1f6ee; }
-    .large-bg { background: #ffede2; }
+    .result-image.hospital {
+      background: #eaf4ff;
+    }
+
+    .result-image.pharmacy {
+      background: #e8f8ef;
+    }
+
+    .result-info {
+      flex: 1;
+      min-width: 0;
+    }
 
     .result-name {
-      margin-bottom: 5px;
+      margin-bottom: 6px;
       font-size: 14px;
       font-weight: bold;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
     }
 
-    .result-meta,
-    .result-address {
-      font-size: 11px;
+    .result-category {
+      margin-bottom: 5px;
       color: #777;
+      font-size: 11px;
+    }
+
+    .result-address {
+      color: #777;
+      font-size: 11px;
       line-height: 1.6;
+      overflow-wrap: anywhere;
     }
 
-    .result-address {
-      margin-top: 8px;
-    }
-
-    .result-actions {
-      display: flex;
-      gap: 6px;
-      margin-top: 9px;
-    }
-
-    .result-actions button {
-      padding: 6px 9px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      background: white;
-      cursor: pointer;
+    .result-phone {
+      margin-top: 5px;
+      color: #555;
       font-size: 11px;
     }
 
-    .empty {
-      padding: 25px 18px;
-      color: #777;
-      font-size: 12px;
+    .empty-message {
+      padding: 35px 20px;
+      color: #888;
+      font-size: 13px;
       line-height: 1.8;
+      text-align: center;
     }
 
     /* 오른쪽 지도 */
@@ -223,6 +257,8 @@
       position: relative;
       flex: 1;
       min-width: 0;
+      height: 100%;
+      background: #eee;
     }
 
     #map {
@@ -230,949 +266,909 @@
       height: 100%;
     }
 
-    .map-controls {
+    .map-label {
       position: absolute;
-      top: 12px;
-      right: 12px;
-      z-index: 3;
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-    }
-
-    .map-controls button {
-      padding: 10px 12px;
-      border: none;
-      border-radius: 8px;
-      background: white;
-      box-shadow: 0 2px 8px #0002;
-      cursor: pointer;
-      font-size: 12px;
-    }
-
-    /* 로드뷰 영역 */
-    #roadview {
-      display: none;
-      position: absolute;
-      right: 12px;
-      bottom: 12px;
-      width: min(430px, 70%);
-      height: 270px;
-      z-index: 4;
-      border: 2px solid white;
-      border-radius: 10px;
-      box-shadow: 0 2px 12px #0003;
-      background: #eee;
-    }
-
-    .legend {
-      position: absolute;
-      bottom: 15px;
-      left: 15px;
-      z-index: 2;
+      top: 15px;
+      right: 15px;
+      z-index: 1;
       padding: 10px 13px;
       border-radius: 9px;
       background: white;
-      box-shadow: 0 2px 8px #0002;
-      font-size: 11px;
-      line-height: 1.8;
-    }
-
-    .popup {
-      min-width: 210px;
-      max-width: 270px;
-      padding: 12px;
-      font-family: Arial, "Malgun Gothic", sans-serif;
-    }
-
-    .popup strong {
-      font-size: 14px;
-    }
-
-    .popup p {
-      margin: 7px 0;
+      box-shadow: 0 2px 8px #00000018;
       font-size: 12px;
       line-height: 1.7;
-      color: #555;
-      white-space: normal;
     }
 
-    .popup a {
+    .map-legend {
+      display: flex;
+      gap: 12px;
+      margin-top: 5px;
+      color: #666;
+      font-size: 11px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .legend-dot {
       display: inline-block;
-      margin: 4px 8px 0 0;
-      color: #1769aa;
-      font-size: 12px;
-      text-decoration: none;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
     }
 
-    @media (max-width: 650px) {
+    /* 지도 위 의료시설 마커 */
+    .custom-marker {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 38px;
+      height: 38px;
+      border: 3px solid white;
+      border-radius: 50% 50% 50% 8px;
+      box-shadow: 0 2px 7px #00000035;
+      transform: rotate(-45deg);
+    }
+
+    .custom-marker span {
+      font-size: 19px;
+      transform: rotate(45deg);
+    }
+
+    .custom-marker.hospital {
+      background: #2584e8;
+    }
+
+    .custom-marker.pharmacy {
+      background: #18a66a;
+    }
+
+    /* 현재 위치 마커 */
+    .current-marker {
+      width: 20px;
+      height: 20px;
+      border: 4px solid white;
+      border-radius: 50%;
+      background: #3979f6;
+      box-shadow: 0 1px 8px #00000055;
+    }
+
+    /* 모바일 화면 */
+    @media (max-width: 700px) {
       .sidebar {
-        width: 48%;
-        min-width: 175px;
+        width: 45%;
+        min-width: 185px;
       }
 
       .header {
-        padding: 12px 9px;
+        padding: 17px 12px 12px;
       }
 
-      h1 {
-        font-size: 16px;
-      }
-
-      .description {
-        font-size: 10px;
-      }
-
-      .tab {
-        font-size: 11px;
-      }
-
-      .tab small {
-        font-size: 9px;
-      }
-
-      .category-image {
-        width: 34px;
-        height: 34px;
+      .header h1 {
         font-size: 18px;
       }
 
+      .header p {
+        font-size: 11px;
+      }
+
+      .category-tabs {
+        padding: 12px 10px 8px;
+        gap: 5px;
+      }
+
+      .tab-button {
+        padding: 10px 4px;
+        font-size: 12px;
+      }
+
+      .tab-icon {
+        font-size: 21px;
+      }
+
+      .search-form {
+        gap: 5px;
+      }
+
+      #searchInput {
+        padding: 10px 7px;
+        font-size: 11px;
+      }
+
+      #searchButton {
+        padding: 0 8px;
+        font-size: 11px;
+      }
+
+      #statusMessage,
+      .list-heading {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+
+      .location-button {
+        margin-left: 10px;
+        margin-right: 10px;
+        font-size: 11px;
+      }
+
       .result-item {
-        padding: 10px 8px;
+        gap: 8px;
+        padding: 12px 9px;
+      }
+
+      .result-image {
+        width: 38px;
+        height: 38px;
+        font-size: 21px;
       }
 
       .result-name {
         font-size: 12px;
       }
 
-      .legend {
-        left: 5px;
-        bottom: 5px;
-        font-size: 9px;
+      .result-address,
+      .result-category,
+      .result-phone {
+        font-size: 10px;
       }
 
-      #roadview {
-        width: 90%;
-        height: 210px;
+      .map-label {
+        top: 8px;
+        right: 8px;
+        padding: 8px;
+        font-size: 10px;
       }
     }
   </style>
 </head>
 
 <body>
-<div class="container">
+  <div class="container">
 
-  <!-- 왼쪽: 엑셀 업로드, 규모 선택, 공연장 목록 -->
-  <aside class="sidebar">
-    <header class="header">
-      <h1>🎭 대한민국 공연장 지도</h1>
+    <!-- 왼쪽 의료시설 검색 패널 -->
+    <aside class="sidebar">
 
-      <div class="description">
-        객석 규모에 따라 공연장을 검색합니다.<br>
-        소극장: 400석 미만<br>
-        중극장: 400석 이상 1,000석 미만<br>
-        대극장: 1,000석 이상
-      </div>
+      <header class="header">
+        <h1>내 주변 의료시설</h1>
+        <p>가까운 병원과 약국을 찾고 위치를 확인하세요.</p>
 
-      <div class="upload-area">
-        <label for="excelFile">📁 공연장 엑셀 파일 불러오기</label>
-        <input type="file" id="excelFile" accept=".xls,.xlsx">
-      </div>
+        <!-- 키워드 검색 -->
+        <form class="search-form" id="searchForm">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="병원 이름 또는 약국 이름"
+            autocomplete="off"
+          >
+          <button type="submit" id="searchButton">검색</button>
+        </form>
+      </header>
 
-      <div class="tabs">
-        <button class="tab active" data-type="small">
-          소극장
-          <small>400석 미만</small>
+      <!-- 의료시설 카테고리 탭 -->
+      <div class="category-tabs">
+        <button
+          type="button"
+          class="tab-button active"
+          data-category="hospital"
+        >
+          <span class="tab-icon">🏥</span>
+          병원
         </button>
 
-        <button class="tab" data-type="medium">
-          중극장
-          <small>400~999석</small>
+        <button
+          type="button"
+          class="tab-button"
+          data-category="pharmacy"
+        >
+          <span class="tab-icon">💊</span>
+          약국
         </button>
-
-        <button class="tab" data-type="large">
-          대극장
-          <small>1,000석 이상</small>
-        </button>
       </div>
 
-      <div class="tool-buttons">
-        <button id="locateButton">📍 내 위치</button>
-        <button id="roadviewButton">🛣️ 로드뷰</button>
+      <div id="statusMessage" role="status" aria-live="polite">
+        카카오 지도를 불러오는 중입니다.
       </div>
-    </header>
 
-    <div id="status" role="status" aria-live="polite">
-      지도를 불러오는 중입니다.
-    </div>
+      <button type="button" class="location-button" id="locationButton">
+        📍 현재 위치로 이동
+      </button>
 
-    <div id="resultList">
-      <div class="empty">
-        엑셀 파일을 선택한 다음 공연장 규모를 눌러 주세요.
+      <div class="list-heading">
+        <strong id="listTitle">주변 병원</strong>
+        <span id="resultCount">0곳</span>
       </div>
-    </div>
-  </aside>
 
-  <!-- 오른쪽: 카카오 지도와 로드뷰 -->
-  <main class="map-area">
-    <div id="map"></div>
-    <div id="roadview"></div>
+      <div id="resultList">
+        <div class="empty-message">
+          지도가 준비되면 주변 의료시설을 검색합니다.
+        </div>
+      </div>
 
-    <div class="map-controls">
-      <button id="roadmapButton">일반 지도</button>
-      <button id="skyviewButton">스카이뷰</button>
-      <button id="closeRoadviewButton">로드뷰 닫기</button>
-    </div>
+    </aside>
 
-    <div class="legend">
-      🔵 소극장　🟢 중극장　🟠 대극장<br>
-      마커를 누르면 공연장 상세 정보가 표시됩니다.
-    </div>
-  </main>
-</div>
+    <!-- 오른쪽 지도 패널 -->
+    <main class="map-area">
+      <div id="map"></div>
 
-<script>
-  // 공연장 규모별 설정
-  const categoryConfig = {
-    small: {
-      label: "소극장",
-      color: "#2878d0",
-      markerText: "S",
-      emoji: "🎟️",
-      imageClass: "small-bg"
-    },
-    medium: {
-      label: "중극장",
-      color: "#139b78",
-      markerText: "M",
-      emoji: "🎭",
-      imageClass: "medium-bg"
-    },
-    large: {
-      label: "대극장",
-      color: "#e16b32",
-      markerText: "L",
-      emoji: "🏛️",
-      imageClass: "large-bg"
-    }
-  };
+      <div class="map-label">
+        <strong>의료시설 지도</strong>
+        <div class="map-legend">
+          <span class="legend-item">
+            <span class="legend-dot" style="background:#2584e8"></span>
+            병원
+          </span>
+          <span class="legend-item">
+            <span class="legend-dot" style="background:#18a66a"></span>
+            약국
+          </span>
+          <span class="legend-item">
+            <span class="legend-dot" style="background:#3979f6"></span>
+            내 위치
+          </span>
+        </div>
+      </div>
+    </main>
 
-  // 지도 및 검색 상태를 저장하는 변수
-  let map = null;
-  let geocoder = null;
-  let infoWindow = null;
-  let roadview = null;
-  let roadviewClient = null;
+  </div>
 
-  let currentPosition = null;
-  let currentMarker = null;
-  let theaterData = [];
-  let theaterMarkers = [];
-  let currentResults = [];
-  let activeType = "small";
-  let searchToken = 0;
-  let isRoadviewVisible = false;
+  <script>
+    // 지도와 장소 검색에 사용할 변수
+    let map = null;
+    let placesService = null;
+    let infoWindow = null;
 
-  // HTML 요소
-  const statusElement = document.getElementById("status");
-  const resultList = document.getElementById("resultList");
-  const excelFile = document.getElementById("excelFile");
+    // 현재 위치와 마커를 관리하는 변수
+    let currentPosition = null;
+    let currentLocationMarker = null;
+    let medicalMarkers = [];
+    let currentPlaces = [];
 
-  // 상태 메시지 표시
-  function setStatus(message) {
-    statusElement.textContent = message;
-  }
+    // 지도 및 검색 상태
+    let isMapReady = false;
+    let activeCategory = "hospital";
+    let searchRequestId = 0;
 
-  // HTML에 표시할 문자열의 특수문자 처리
-  function escapeHTML(value) {
-    return String(value ?? "").replace(/[&<>"']/g, character => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
-    })[character]);
-  }
-
-  // 객석 수에 따라 공연장 규모를 분류
-  function getCategory(seats) {
-    if (seats < 400) return "small";
-    if (seats < 1000) return "medium";
-    return "large";
-  }
-
-  // 목록이 비었을 때 안내 문구 표시
-  function showEmpty(message) {
-    resultList.innerHTML = "";
-
-    const element = document.createElement("div");
-    element.className = "empty";
-    element.textContent = message;
-
-    resultList.appendChild(element);
-  }
-
-  // 엑셀 파일을 읽고 공연장 데이터로 변환
-  excelFile.addEventListener("change", function(event) {
-    const file = event.target.files[0];
-
-    if (!file) return;
-
-    if (typeof XLSX === "undefined") {
-      setStatus("엑셀 라이브러리를 불러오지 못했습니다.");
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = function(loadEvent) {
-      try {
-        const workbook = XLSX.read(loadEvent.target.result, {
-          type: "array"
-        });
-
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-
-        // 첫 번째 행의 안내 문구가 있을 수 있어 원본 행을 확인
-        const rows = XLSX.utils.sheet_to_json(sheet, {
-          header: 1,
-          defval: ""
-        });
-
-        const headerIndex = rows.findIndex(row =>
-          row.includes("공연장명") &&
-          row.includes("주소") &&
-          row.includes("객석수")
-        );
-
-        if (headerIndex === -1) {
-          setStatus("엑셀에서 공연장명, 주소, 객석수 열을 찾지 못했습니다.");
-          return;
-        }
-
-        const headers = rows[headerIndex].map(value =>
-          String(value).trim()
-        );
-
-        const nameIndex = headers.indexOf("공연장명");
-        const addressIndex = headers.indexOf("주소");
-        const seatsIndex = headers.indexOf("객석수");
-        const provinceIndex = headers.indexOf("시/군 구분");
-        const districtIndex = headers.indexOf("시/군/구 구분");
-
-        theaterData = rows.slice(headerIndex + 1)
-          .map(row => {
-            const name = String(row[nameIndex] ?? "").trim();
-            const address = String(row[addressIndex] ?? "").trim();
-            const seats = Number(
-              String(row[seatsIndex] ?? "").replace(/,/g, "")
-            );
-
-            return {
-              name,
-              address,
-              seats,
-              province: provinceIndex >= 0
-                ? String(row[provinceIndex] ?? "").trim()
-                : "",
-              district: districtIndex >= 0
-                ? String(row[districtIndex] ?? "").trim()
-                : ""
-            };
-          })
-          .filter(theater =>
-            theater.name &&
-            theater.address &&
-            Number.isFinite(theater.seats) &&
-            theater.seats >= 0
-          );
-
-        setStatus(
-          "엑셀에서 공연장 " +
-          theaterData.length.toLocaleString() +
-          "개를 불러왔습니다. 규모를 선택해 주세요."
-        );
-
-        searchNearbyTheaters(activeType);
-      } catch (error) {
-        console.error(error);
-        setStatus("엑셀 파일을 읽지 못했습니다. 파일 형식을 확인해 주세요.");
+    // 카테고리별 설정
+    const categoryConfig = {
+      hospital: {
+        code: "HP8",
+        name: "병원",
+        icon: "🏥",
+        markerClass: "hospital",
+        color: "#2584e8"
+      },
+      pharmacy: {
+        code: "PM9",
+        name: "약국",
+        icon: "💊",
+        markerClass: "pharmacy",
+        color: "#18a66a"
       }
     };
 
-    reader.readAsArrayBuffer(file);
-  });
+    // HTML 요소 가져오기
+    const searchForm = document.getElementById("searchForm");
+    const searchInput = document.getElementById("searchInput");
+    const searchButton = document.getElementById("searchButton");
+    const statusMessage = document.getElementById("statusMessage");
+    const resultList = document.getElementById("resultList");
+    const resultCount = document.getElementById("resultCount");
+    const listTitle = document.getElementById("listTitle");
+    const locationButton = document.getElementById("locationButton");
+    const tabButtons = document.querySelectorAll(".tab-button");
 
-  // 규모별 탭 선택
-  document.querySelectorAll(".tab").forEach(button => {
-    button.addEventListener("click", function() {
-      activeType = button.dataset.type;
-
-      document.querySelectorAll(".tab").forEach(tab => {
-        tab.classList.toggle("active", tab === button);
-      });
-
-      searchNearbyTheaters(activeType);
-    });
-  });
-
-  // 이전 공연장 마커와 팝업 제거
-  function clearTheaterMarkers() {
-    theaterMarkers.forEach(marker => marker.setMap(null));
-    theaterMarkers = [];
-
-    if (infoWindow) {
-      infoWindow.close();
-    }
-  }
-
-  // 카테고리별 사용자 지정 마커 이미지 생성
-  function createMarkerImage(type) {
-    const config = categoryConfig[type];
-
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg"
-           width="42" height="50" viewBox="0 0 42 50">
-        <path d="M21 1 C9 1 2 9 2 20 C2 33 21 48 21 48
-                 S40 33 40 20 C40 9 33 1 21 1 Z"
-              fill="${config.color}" stroke="white" stroke-width="2"/>
-        <text x="21" y="26" text-anchor="middle"
-              font-size="15" font-weight="bold"
-              font-family="Arial" fill="white">
-          ${config.markerText}
-        </text>
-      </svg>`;
-
-    const imageUrl =
-      "data:image/svg+xml;charset=utf-8," +
-      encodeURIComponent(svg);
-
-    return new kakao.maps.MarkerImage(
-      imageUrl,
-      new kakao.maps.Size(42, 50),
-      { offset: new kakao.maps.Point(21, 48) }
-    );
-  }
-
-  // 공연장 상세 팝업 내용 생성
-  function createPopupHTML(theater) {
-    const type = getCategory(theater.seats);
-    const config = categoryConfig[type];
-
-    const address = theater.address || "주소 정보 없음";
-
-    const destination =
-      encodeURIComponent(theater.name) +
-      "," + theater.y +
-      "," + theater.x;
-
-    const routeUrl =
-      "https://map.kakao.com/link/to/" + destination;
-
-    const roadviewUrl =
-      "https://map.kakao.com/link/roadview/" +
-      theater.y + "," + theater.x;
-
-    return `
-      <div class="popup">
-        <strong>${escapeHTML(theater.name)}</strong>
-        <p>
-          규모: ${config.label}<br>
-          객석 수: ${theater.seats.toLocaleString()}석<br>
-          주소: ${escapeHTML(address)}
-        </p>
-        <a href="${routeUrl}" target="_blank" rel="noopener">
-          길찾기·교통정보 ↗
-        </a>
-        <a href="${roadviewUrl}" target="_blank" rel="noopener">
-          카카오 로드뷰 ↗
-        </a>
-      </div>`;
-  }
-
-  // 공연장 팝업 열기
-  function openTheaterPopup(theater, marker) {
-    infoWindow.setContent(createPopupHTML(theater));
-    infoWindow.open(map, marker);
-
-    // 선택한 공연장 위치로 로드뷰 이동
-    showRoadviewAt(
-      new kakao.maps.LatLng(Number(theater.y), Number(theater.x)),
-      false
-    );
-  }
-
-  // 두 지점 사이의 거리를 계산
-  function calculateDistance(origin, theater) {
-    const lat1 = origin.getLat() * Math.PI / 180;
-    const lat2 = Number(theater.y) * Math.PI / 180;
-
-    const dLat = lat2 - lat1;
-    const dLng =
-      Number(theater.x) * Math.PI / 180 -
-      origin.getLng() * Math.PI / 180;
-
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(lat1) * Math.cos(lat2) *
-      Math.sin(dLng / 2) ** 2;
-
-    return 6371 * 2 *
-      Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
-  // 공연장 목록 표시
-  function renderResults(results) {
-    resultList.innerHTML = "";
-
-    if (!results.length) {
-      showEmpty(
-        "주변에서 해당 규모의 공연장을 찾지 못했습니다. " +
-        "다른 규모를 선택하거나 지도를 이동해 보세요."
-      );
-      return;
+    // 상태 메시지 변경
+    function updateStatus(message) {
+      statusMessage.textContent = message;
     }
 
-    results.forEach((theater, index) => {
-      const type = getCategory(theater.seats);
-      const config = categoryConfig[type];
+    // HTML에 표시할 문자열의 특수문자 처리
+    function escapeHTML(value) {
+      return String(value ?? "").replace(/[&<>"']/g, function(character) {
+        const entities = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;"
+        };
 
-      const item = document.createElement("article");
-      item.className = "result-item";
-
-      const top = document.createElement("div");
-      top.className = "result-top";
-
-      const image = document.createElement("div");
-      image.className =
-        "category-image " + config.imageClass;
-      image.textContent = config.emoji;
-      image.setAttribute("aria-label", config.label);
-
-      const details = document.createElement("div");
-
-      const name = document.createElement("div");
-      name.className = "result-name";
-      name.textContent = (index + 1) + ". " + theater.name;
-
-      const meta = document.createElement("div");
-      meta.className = "result-meta";
-      meta.textContent =
-        config.label + " · " +
-        theater.seats.toLocaleString() + "석";
-
-      details.append(name, meta);
-      top.append(image, details);
-
-      const address = document.createElement("div");
-      address.className = "result-address";
-      address.textContent = theater.address;
-
-      const actions = document.createElement("div");
-      actions.className = "result-actions";
-
-      const routeButton = document.createElement("button");
-      routeButton.textContent = "교통·길찾기";
-
-      routeButton.addEventListener("click", event => {
-        event.stopPropagation();
-        openDirections(theater);
+        return entities[character];
       });
-
-      const roadButton = document.createElement("button");
-      roadButton.textContent = "로드뷰";
-
-      roadButton.addEventListener("click", event => {
-        event.stopPropagation();
-
-        showRoadviewAt(
-          new kakao.maps.LatLng(
-            Number(theater.y),
-            Number(theater.x)
-          ),
-          true
-        );
-      });
-
-      actions.append(routeButton, roadButton);
-      item.append(top, address, actions);
-
-      // 목록을 누르면 지도 중심을 공연장으로 이동
-      item.addEventListener("click", function() {
-        const position = new kakao.maps.LatLng(
-          Number(theater.y),
-          Number(theater.x)
-        );
-
-        map.panTo(position);
-        map.setLevel(3);
-        openTheaterPopup(theater, theater.marker);
-      });
-
-      resultList.appendChild(item);
-    });
-  }
-
-  // 카카오맵 길찾기 화면 열기
-  function openDirections(theater) {
-    const destination =
-      encodeURIComponent(theater.name) +
-      "," + theater.y +
-      "," + theater.x;
-
-    let url;
-
-    if (currentPosition) {
-      const origin =
-        encodeURIComponent("내 위치") +
-        "," + currentPosition.getLat() +
-        "," + currentPosition.getLng();
-
-      url =
-        "https://map.kakao.com/link/from/" +
-        origin + "/to/" + destination;
-    } else {
-      url = "https://map.kakao.com/link/to/" + destination;
     }
 
-    window.open(url, "_blank", "noopener");
-  }
+    // 카카오맵 길찾기 주소 생성
+    function createRouteUrl(place) {
+      const destinationName = encodeURIComponent(place.place_name);
+      const destinationLat = Number(place.y);
+      const destinationLng = Number(place.x);
 
-  // 공연장 마커 생성
-  function displayMarkers(results) {
-    clearTheaterMarkers();
+      const destination =
+        destinationName + "," + destinationLat + "," + destinationLng;
 
-    results.forEach(theater => {
-      const type = getCategory(theater.seats);
+      // 현재 위치가 있으면 출발지와 목적지를 함께 전달
+      if (currentPosition) {
+        const origin =
+          encodeURIComponent("내 위치") + "," +
+          currentPosition.getLat() + "," +
+          currentPosition.getLng();
 
-      const position = new kakao.maps.LatLng(
-        Number(theater.y),
-        Number(theater.x)
+        return "https://map.kakao.com/link/from/" +
+          origin + "/to/" + destination;
+      }
+
+      // 현재 위치가 없으면 목적지만 표시
+      return "https://map.kakao.com/link/to/" + destination;
+    }
+
+    // 지도 초기화
+    function initializeMap() {
+      const defaultPosition = new kakao.maps.LatLng(
+        37.5665,
+        126.9780
       );
 
-      const marker = new kakao.maps.Marker({
-        map,
-        position,
-        title: theater.name,
-        image: createMarkerImage(type)
-      });
-
-      theater.marker = marker;
-
-      kakao.maps.event.addListener(marker, "click", function() {
-        openTheaterPopup(theater, marker);
-      });
-
-      theaterMarkers.push(marker);
-    });
-  }
-
-  // 현재 위치 마커 표시
-  function updateCurrentMarker() {
-    if (currentMarker) {
-      currentMarker.setMap(null);
-    }
-
-    if (!currentPosition) return;
-
-    currentMarker = new kakao.maps.Marker({
-      map,
-      position: currentPosition,
-      zIndex: 10
-    });
-
-    const currentInfo = new kakao.maps.InfoWindow({
-      content: '<div style="padding:8px;font-size:12px;">📍 현재 위치</div>'
-    });
-
-    kakao.maps.event.addListener(
-      currentMarker,
-      "click",
-      () => currentInfo.open(map, currentMarker)
-    );
-  }
-
-  // 현재 위치 주변의 공연장 검색
-  function searchNearbyTheaters(type) {
-    if (!map || !geocoder) return;
-
-    if (!theaterData.length) {
-      showEmpty("먼저 위에서 공연장 엑셀 파일을 선택해 주세요.");
-      setStatus("엑셀 파일을 기다리고 있습니다.");
-      clearTheaterMarkers();
-      return;
-    }
-
-    if (!currentPosition) {
-      showEmpty("현재 위치를 확인하는 중입니다.");
-      setStatus("현재 위치 권한을 확인해 주세요.");
-      return;
-    }
-
-    const token = ++searchToken;
-
-    clearTheaterMarkers();
-    currentResults = [];
-
-    const config = categoryConfig[type];
-
-    // 선택한 규모의 공연장만 추출
-    const candidates = theaterData.filter(theater =>
-      getCategory(theater.seats) === type
-    );
-
-    if (!candidates.length) {
-      showEmpty("이 규모에 해당하는 공연장이 엑셀에 없습니다.");
-      return;
-    }
-
-    setStatus(
-      config.label + " 주소를 확인하고 있습니다. " +
-      "검색 범위는 현재 위치 주변 50km입니다."
-    );
-
-    const found = [];
-    let index = 0;
-    let checked = 0;
-
-    // 주소 검색 요청을 순차적으로 처리
-    function processNext() {
-      if (token !== searchToken) return;
-
-      if (index >= candidates.length) {
-        found.sort((a, b) =>
-          calculateDistance(currentPosition, a) -
-          calculateDistance(currentPosition, b)
-        );
-
-        currentResults = found;
-
-        displayMarkers(found);
-        renderResults(found);
-
-        if (found.length) {
-          const bounds = new kakao.maps.LatLngBounds();
-
-          bounds.extend(currentPosition);
-
-          found.forEach(theater => {
-            bounds.extend(
-              new kakao.maps.LatLng(
-                Number(theater.y),
-                Number(theater.x)
-              )
-            );
-          });
-
-          map.setBounds(bounds);
+      // 서울 시청을 기본 지도 중심으로 사용
+      map = new kakao.maps.Map(
+        document.getElementById("map"),
+        {
+          center: defaultPosition,
+          level: 5
         }
+      );
 
-        setStatus(
-          config.label + " " + found.length +
-          "곳을 찾았습니다. (주소 확인 " +
-          checked + "건)"
+      // 장소 검색 서비스 생성
+      placesService = new kakao.maps.services.Places();
+
+      // 장소 상세 정보 창 생성
+      infoWindow = new kakao.maps.InfoWindow({
+        zIndex: 5
+      });
+
+      // 지도 준비 완료 확인
+      kakao.maps.event.addListener(map, "tilesloaded", function() {
+        if (!isMapReady) {
+          isMapReady = true;
+          updateStatus("지도가 준비되었습니다.");
+        }
+      });
+
+      // 현재 위치 확인 후 주변 병원 검색
+      requestCurrentLocation();
+    }
+
+    // 현재 위치 요청
+    function requestCurrentLocation() {
+      if (!navigator.geolocation) {
+        updateStatus(
+          "위치 정보를 지원하지 않습니다. 지도에서 원하는 지역을 검색하세요."
         );
 
+        searchNearbyPlaces();
         return;
       }
 
-      const theater = candidates[index++];
+      updateStatus("현재 위치를 확인하고 있습니다.");
 
-      geocoder.addressSearch(theater.address, (data, status) => {
-        if (token !== searchToken) return;
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          // 현재 위치 저장
+          currentPosition = new kakao.maps.LatLng(
+            position.coords.latitude,
+            position.coords.longitude
+          );
 
-        checked++;
+          // 지도 중심을 현재 위치로 이동
+          map.setCenter(currentPosition);
+          map.setLevel(4);
 
-        if (
-          status === kakao.maps.services.Status.OK &&
-          data.length
-        ) {
-          const location = data[0];
+          // 현재 위치 마커 표시
+          displayCurrentLocation();
 
-          const result = {
-            ...theater,
-            x: location.x,
-            y: location.y
-          };
+          // 현재 위치 주변 의료시설 검색
+          searchNearbyPlaces();
+        },
 
-          // 현재 위치에서 50km 이내인 공연장만 결과에 포함
-          if (calculateDistance(currentPosition, result) <= 50) {
-            found.push(result);
+        function(error) {
+          // 위치 확인에 실패하면 기본 지도에서 검색
+          let errorMessage = "현재 위치를 확인할 수 없습니다.";
+
+          if (error.code === error.PERMISSION_DENIED) {
+            errorMessage = "위치 권한이 거부되었습니다.";
+          } else if (error.code === error.TIMEOUT) {
+            errorMessage = "위치 확인 시간이 초과되었습니다.";
           }
+
+          updateStatus(
+            errorMessage + " 지도 중심을 기준으로 검색합니다."
+          );
+
+          searchNearbyPlaces();
+        },
+
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
         }
+      );
+    }
 
-        setStatus(
-          config.label + " 주소 확인 중: " +
-          checked + "/" + candidates.length
-        );
+    // 현재 위치 마커 표시
+    function displayCurrentLocation() {
+      if (!currentPosition) {
+        return;
+      }
 
-        processNext();
+      if (currentLocationMarker) {
+        currentLocationMarker.setMap(null);
+      }
+
+      // 현재 위치를 파란색 원으로 표시
+      const markerElement = document.createElement("div");
+      markerElement.className = "current-marker";
+
+      currentLocationMarker = new kakao.maps.CustomOverlay({
+        position: currentPosition,
+        content: markerElement,
+        yAnchor: 0.5,
+        zIndex: 10
       });
+
+      currentLocationMarker.setMap(map);
     }
 
-    processNext();
-  }
-
-  // 현재 위치 권한 요청
-  function requestCurrentLocation() {
-    if (!navigator.geolocation) {
-      setStatus("이 브라우저는 위치 정보를 지원하지 않습니다.");
-      return;
-    }
-
-    setStatus("현재 위치를 확인하고 있습니다.");
-
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        currentPosition = new kakao.maps.LatLng(
-          position.coords.latitude,
-          position.coords.longitude
+    // 현재 위치로 지도 이동
+    function moveToCurrentLocation() {
+      if (!currentPosition) {
+        updateStatus(
+          "현재 위치를 사용할 수 없습니다. 브라우저의 위치 권한을 확인하세요."
         );
-
-        map.setCenter(currentPosition);
-        map.setLevel(7);
-
-        updateCurrentMarker();
-        searchNearbyTheaters(activeType);
-      },
-      error => {
-        const messages = {
-          1: "위치 권한이 거부되었습니다.",
-          2: "현재 위치를 확인할 수 없습니다.",
-          3: "위치 확인 시간이 초과되었습니다."
-        };
-
-        setStatus(
-          (messages[error.code] || "위치 확인에 실패했습니다.") +
-          " 브라우저의 위치 권한을 확인해 주세요."
-        );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 12000,
-        maximumAge: 60000
+        return;
       }
-    );
-  }
 
-  // 로드뷰를 특정 위치로 이동
-  function showRoadviewAt(position, openPanel) {
-    if (!roadview || !roadviewClient) return;
+      map.setCenter(currentPosition);
+      map.setLevel(4);
 
-    roadviewClient.getNearestPanoId(position, 50, panoId => {
-      if (panoId) {
-        roadview.setPanoId(panoId, position);
-
-        if (openPanel) {
-          document.getElementById("roadview").style.display = "block";
-          roadview.setViewpoint({
-            pan: 0,
-            tilt: 0,
-            zoom: 0
-          });
-
-          isRoadviewVisible = true;
-          document.getElementById("roadviewButton").textContent =
-            "🛣️ 로드뷰 끄기";
-        }
-
-        setStatus("로드뷰 위치를 불러왔습니다.");
-      } else {
-        setStatus("이 위치 주변에는 이용 가능한 로드뷰가 없습니다.");
-      }
-    });
-  }
-
-  // 지도 종류 전환
-  function setMapType(type) {
-    if (type === "sky") {
-      map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
-    } else {
-      map.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
+      searchNearbyPlaces();
     }
-  }
 
-  // 지도와 로드뷰 초기화
-  function initializeMap() {
-    const defaultPosition = new kakao.maps.LatLng(
-      37.5665,
-      126.9780
-    );
+    // 기존 의료시설 마커 제거
+    function clearMedicalMarkers() {
+      medicalMarkers.forEach(function(marker) {
+        marker.setMap(null);
+      });
 
-    map = new kakao.maps.Map(
-      document.getElementById("map"),
-      {
-        center: defaultPosition,
-        level: 7
+      medicalMarkers = [];
+
+      if (infoWindow) {
+        infoWindow.close();
       }
-    );
+    }
 
-    geocoder = new kakao.maps.services.Geocoder();
-    infoWindow = new kakao.maps.InfoWindow({ zIndex: 5 });
+    // 검색 목록 초기화
+    function clearResults(message) {
+      currentPlaces = [];
+      resultList.innerHTML = "";
 
-    roadview = new kakao.maps.Roadview(
-      document.getElementById("roadview")
-    );
+      resultCount.textContent = "0곳";
 
-    roadviewClient = new kakao.maps.RoadviewClient();
-    roadview.setVisibility(false);
+      const emptyMessage = document.createElement("div");
+      emptyMessage.className = "empty-message";
+      emptyMessage.textContent = message;
 
-    document.getElementById("locateButton")
-      .addEventListener("click", requestCurrentLocation);
+      resultList.appendChild(emptyMessage);
+    }
 
-    document.getElementById("roadviewButton")
-      .addEventListener("click", function() {
-        if (isRoadviewVisible) {
-          roadview.setVisibility(false);
-          document.getElementById("roadview").style.display = "none";
-          isRoadviewVisible = false;
-          this.textContent = "🛣️ 로드뷰";
-        } else {
-          if (currentResults.length) {
-            const theater = currentResults[0];
+    // 카테고리 변경
+    function changeCategory(category) {
+      if (!categoryConfig[category]) {
+        return;
+      }
 
-            showRoadviewAt(
-              new kakao.maps.LatLng(
-                Number(theater.y),
-                Number(theater.x)
-              ),
-              true
+      activeCategory = category;
+
+      // 활성 탭 디자인 변경
+      tabButtons.forEach(function(button) {
+        const isActive = button.dataset.category === category;
+        button.classList.toggle("active", isActive);
+      });
+
+      // 이전 검색 결과 초기화
+      searchRequestId++;
+      clearMedicalMarkers();
+      clearResults("주변 의료시설을 검색하고 있습니다.");
+
+      // 검색 제목 변경
+      listTitle.textContent =
+        "주변 " + categoryConfig[category].name;
+
+      searchInput.value = "";
+
+      // 새로운 카테고리 검색
+      searchNearbyPlaces();
+    }
+
+    // 주변 의료시설 검색
+    function searchNearbyPlaces() {
+      if (!isMapReady || !placesService) {
+        updateStatus("지도가 준비될 때까지 기다려 주세요.");
+        return;
+      }
+
+      // 이전 비동기 검색 결과가 나중에 덮어쓰지 않도록 식별 번호 사용
+      const requestId = ++searchRequestId;
+      const config = categoryConfig[activeCategory];
+
+      const searchCenter = currentPosition || map.getCenter();
+
+      clearMedicalMarkers();
+      clearResults("주변 " + config.name + "을(를) 검색하고 있습니다.");
+
+      updateStatus(
+        searchCenter === currentPosition
+          ? "현재 위치 주변 " + config.name + "을(를) 검색합니다."
+          : "지도 중심 주변 " + config.name + "을(를) 검색합니다."
+      );
+
+      // 카카오맵 의료시설 카테고리 검색
+      placesService.categorySearch(
+        config.code,
+        function(data, status) {
+          // 더 최근의 검색이 시작되었다면 이전 결과 무시
+          if (requestId !== searchRequestId) {
+            return;
+          }
+
+          if (status === kakao.maps.services.Status.OK) {
+            currentPlaces = data;
+
+            displayResults(data);
+            displayMedicalMarkers(data);
+
+            updateStatus(
+              "주변 " + config.name + " " + data.length + "곳을 찾았습니다."
             );
-          } else if (currentPosition) {
-            showRoadviewAt(currentPosition, true);
+
+          } else if (
+            status === kakao.maps.services.Status.ZERO_RESULT
+          ) {
+            clearMedicalMarkers();
+            clearResults("주변에 검색 결과가 없습니다.");
+
+            updateStatus(
+              "검색 결과가 없습니다. 다른 지역에서 확인해 보세요."
+            );
+
           } else {
-            setStatus("먼저 현재 위치를 확인해 주세요.");
+            clearMedicalMarkers();
+            clearResults("검색에 실패했습니다. 다시 시도해 주세요.");
+
+            updateStatus(
+              "검색 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+            );
           }
+        },
+        {
+          location: searchCenter,
+          radius: 5000,
+          sort: kakao.maps.services.SortBy.DISTANCE
         }
+      );
+    }
+
+    // 키워드로 의료시설 검색
+    function searchByKeyword(keyword) {
+      if (!isMapReady || !placesService) {
+        updateStatus("지도가 준비될 때까지 기다려 주세요.");
+        return;
+      }
+
+      const trimmedKeyword = keyword.trim();
+
+      if (!trimmedKeyword) {
+        searchNearbyPlaces();
+        return;
+      }
+
+      const requestId = ++searchRequestId;
+      const config = categoryConfig[activeCategory];
+
+      clearMedicalMarkers();
+      clearResults("검색 중입니다.");
+
+      searchButton.disabled = true;
+      updateStatus("'" + trimmedKeyword + "' 검색 중입니다.");
+
+      // 키워드 검색 후 선택한 카테고리에 맞는 결과만 남김
+      placesService.keywordSearch(
+        trimmedKeyword,
+        function(data, status) {
+          searchButton.disabled = false;
+
+          if (requestId !== searchRequestId) {
+            return;
+          }
+
+          if (status === kakao.maps.services.Status.OK) {
+            const filteredPlaces = data.filter(function(place) {
+              return place.category_group_code === config.code;
+            });
+
+            currentPlaces = filteredPlaces;
+
+            if (filteredPlaces.length > 0) {
+              displayResults(filteredPlaces);
+              displayMedicalMarkers(filteredPlaces);
+
+              updateStatus(
+                "'" + trimmedKeyword + "' 검색 결과 " +
+                filteredPlaces.length + "곳을 찾았습니다."
+              );
+            } else {
+              clearMedicalMarkers();
+              clearResults(
+                "선택한 카테고리에 해당하는 결과가 없습니다."
+              );
+
+              updateStatus(
+                "검색 결과가 없습니다. 다른 검색어를 입력해 보세요."
+              );
+            }
+
+          } else if (
+            status === kakao.maps.services.Status.ZERO_RESULT
+          ) {
+            clearMedicalMarkers();
+            clearResults("검색 결과가 없습니다.");
+
+            updateStatus("검색 결과가 없습니다.");
+
+          } else {
+            clearMedicalMarkers();
+            clearResults("검색 중 오류가 발생했습니다.");
+
+            updateStatus("검색 중 오류가 발생했습니다.");
+          }
+        },
+        {
+          location: currentPosition || map.getCenter(),
+          radius: 20000,
+          sort: kakao.maps.services.SortBy.DISTANCE
+        }
+      );
+    }
+
+    // 왼쪽 검색 결과 목록 표시
+    function displayResults(places) {
+      resultList.innerHTML = "";
+
+      const config = categoryConfig[activeCategory];
+
+      resultCount.textContent = places.length + "곳";
+
+      if (places.length === 0) {
+        clearResults("검색 결과가 없습니다.");
+        return;
+      }
+
+      places.forEach(function(place, index) {
+        const item = document.createElement("div");
+        item.className = "result-item";
+
+        // 의료시설 유형별 이미지 영역
+        const image = document.createElement("div");
+        image.className =
+          "result-image " + config.markerClass;
+        image.textContent = config.icon;
+        image.setAttribute("aria-hidden", "true");
+
+        const info = document.createElement("div");
+        info.className = "result-info";
+
+        const name = document.createElement("div");
+        name.className = "result-name";
+        name.textContent = (index + 1) + ". " + place.place_name;
+
+        const category = document.createElement("div");
+        category.className = "result-category";
+        category.textContent =
+          place.category_name || config.name;
+
+        const address = document.createElement("div");
+        address.className = "result-address";
+        address.textContent =
+          place.road_address_name ||
+          place.address_name ||
+          "주소 정보 없음";
+
+        const phone = document.createElement("div");
+        phone.className = "result-phone";
+        phone.textContent =
+          place.phone || "전화번호 정보 없음";
+
+        info.appendChild(name);
+        info.appendChild(category);
+        info.appendChild(address);
+        info.appendChild(phone);
+
+        item.appendChild(image);
+        item.appendChild(info);
+
+        // 목록을 클릭하면 지도 이동 및 상세 정보 표시
+        item.addEventListener("click", function() {
+          document.querySelectorAll(".result-item").forEach(
+            function(resultItem) {
+              resultItem.classList.remove("selected");
+            }
+          );
+
+          item.classList.add("selected");
+          moveToPlace(place);
+        });
+
+        resultList.appendChild(item);
+      });
+    }
+
+    // 의료시설별 지도 마커 생성
+    function displayMedicalMarkers(places) {
+      clearMedicalMarkers();
+
+      const config = categoryConfig[activeCategory];
+
+      places.forEach(function(place) {
+        const position = new kakao.maps.LatLng(
+          Number(place.y),
+          Number(place.x)
+        );
+
+        // 병원과 약국의 마커 색상 및 아이콘 구분
+        const markerElement = document.createElement("div");
+        markerElement.className =
+          "custom-marker " + config.markerClass;
+
+        const markerIcon = document.createElement("span");
+        markerIcon.textContent = config.icon;
+        markerElement.appendChild(markerIcon);
+
+        const marker = new kakao.maps.CustomOverlay({
+          position: position,
+          content: markerElement,
+          yAnchor: 1,
+          zIndex: 3
+        });
+
+        marker.setMap(map);
+
+        // 마커를 클릭하면 상세 팝업 표시
+        markerElement.style.cursor = "pointer";
+
+        markerElement.addEventListener("click", function() {
+          showPlaceDetails(place, marker);
+        });
+
+        medicalMarkers.push(marker);
       });
 
-    document.getElementById("closeRoadviewButton")
-      .addEventListener("click", function() {
-        roadview.setVisibility(false);
-        document.getElementById("roadview").style.display = "none";
-        isRoadviewVisible = false;
-        document.getElementById("roadviewButton").textContent = "🛣️ 로드뷰";
+      // 현재 위치를 기준으로 지도 표시 영역 조정
+      if (places.length > 0) {
+        const bounds = new kakao.maps.LatLngBounds();
+
+        places.forEach(function(place) {
+          bounds.extend(
+            new kakao.maps.LatLng(
+              Number(place.y),
+              Number(place.x)
+            )
+          );
+        });
+
+        if (currentPosition) {
+          bounds.extend(currentPosition);
+        }
+
+        map.setBounds(bounds, 50, 50, 50, 50);
+      }
+    }
+
+    // 의료시설 상세 팝업 표시
+    function showPlaceDetails(place, marker) {
+      const routeUrl = createRouteUrl(place);
+
+      const address =
+        place.road_address_name ||
+        place.address_name ||
+        "주소 정보 없음";
+
+      const phone =
+        place.phone || "전화번호 정보 없음";
+
+      // HTML 삽입 시 장소 정보의 특수문자 처리
+      const content =
+        '<div style="padding:12px;width:240px;font-size:12px;line-height:1.7;">' +
+          '<div style="font-size:15px;font-weight:bold;margin-bottom:7px;">' +
+            escapeHTML(place.place_name) +
+          '</div>' +
+          '<div style="color:#666;margin-bottom:5px;">📍 ' +
+            escapeHTML(address) +
+          '</div>' +
+          '<div style="color:#666;margin-bottom:10px;">☎ ' +
+            escapeHTML(phone) +
+          '</div>' +
+          '<a href="' + escapeHTML(routeUrl) + '" target="_blank" ' +
+            'rel="noopener noreferrer" ' +
+            'style="display:block;padding:9px;background:#fee500;' +
+            'border-radius:6px;text-align:center;color:#222;' +
+            'text-decoration:none;font-weight:bold;">' +
+            '카카오맵에서 길찾기' +
+          '</a>' +
+        '</div>';
+
+      infoWindow.setContent(content);
+
+      // CustomOverlay의 위치에 정보 창을 표시
+      infoWindow.open(map);
+
+      // 지도 중심을 해당 의료시설로 이동
+      map.panTo(
+        new kakao.maps.LatLng(
+          Number(place.y),
+          Number(place.x)
+        )
+      );
+    }
+
+    // 선택한 의료시설로 이동
+    function moveToPlace(place) {
+      const position = new kakao.maps.LatLng(
+        Number(place.y),
+        Number(place.x)
+      );
+
+      map.setLevel(3);
+      map.panTo(position);
+
+      // 선택된 의료시설의 상세 정보 표시
+      showPlaceDetails(place, null);
+    }
+
+    // 탭 버튼 이벤트
+    tabButtons.forEach(function(button) {
+      button.addEventListener("click", function() {
+        changeCategory(button.dataset.category);
       });
+    });
 
-    document.getElementById("roadmapButton")
-      .addEventListener("click", () => setMapType("road"));
+    // 검색 폼 이벤트
+    searchForm.addEventListener("submit", function(event) {
+      event.preventDefault();
 
-    document.getElementById("skyviewButton")
-      .addEventListener("click", () => setMapType("sky"));
+      searchByKeyword(searchInput.value);
+    });
 
-    setStatus("지도가 준비되었습니다. 현재 위치를 확인합니다.");
-    requestCurrentLocation();
-  }
+    // 현재 위치 버튼 이벤트
+    locationButton.addEventListener("click", function() {
+      moveToCurrentLocation();
+    });
 
-  // 카카오 지도 SDK가 준비되면 지도 생성
-  if (window.kakao && kakao.maps) {
-    kakao.maps.load(initializeMap);
-  } else {
-    setStatus(
-      "카카오 지도 SDK를 불러오지 못했습니다. " +
-      "JavaScript 키와 등록 도메인을 확인해 주세요."
-    );
-  }
-</script>
+    // 카카오 지도 SDK 준비 후 지도 생성
+    if (window.kakao && kakao.maps) {
+      kakao.maps.load(function() {
+        initializeMap();
+      });
+    } else {
+      updateStatus(
+        "카카오 지도 SDK를 불러오지 못했습니다. " +
+        "API 키와 도메인 설정을 확인해 주세요."
+      );
+
+      clearResults("지도를 불러올 수 없습니다.");
+    }
+  </script>
 </body>
 </html>
